@@ -15,6 +15,7 @@ const DOWNBOOK_CONFIG = {
     endChapter: 1,
     threads: 1
 };
+const POPUPS = {};
 function LoadUI() {
 if (!document.body) return;
 
@@ -34,46 +35,30 @@ DOWNBOOK_SHADOW=shadow;
     style.textContent = `
         button {
             all: unset;
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: #111;
-            color: #fff;
-            font-size: 22px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,.5);
+                margin-top: 6px;
+                padding: 8px;
+                text-align: center;
+                background: #333;
+                border-radius: 6px;
+                cursor: pointer;
         }
     `
-
     const btn = document.createElement("button");
     btn.textContent = "☰";
     btn.title = "Menu";
 
     shadow.append(style, btn);
-    LoadMenu()
-    btn.onclick = ()=>{LoadMenu();onSettingClick();};
+    //LoadMenu()
+    btn.onclick = ()=>{LoadMenu()};
 };
 
 function LoadMenu(){
 //Setting
-    let menu = DOWNBOOK_SHADOW.getElementById("downbook");
-
-    // nếu chưa có thì tạo
-    if (!menu) {
-        menu = document.createElement("div");
-        menu.id = "downbook";
-
-         menu.innerHTML = `
+    let menu =createPopup("downbook",`
             <div class="col" data-action="setting">⚙️<br>Setting</div>
             <div class="col" data-action="view">👁️<br>View</div>
             <div class="col" data-action="download">⬇️<br>Download</div>
-        `;
-
-        const style = document.createElement("style");
-        style.textContent = `
+        `,`
             #downbook {
                 display: none;
                 width: 240px;
@@ -99,10 +84,7 @@ function LoadMenu(){
             .col:hover {
                 background: #333;
             }
-        `;
-
-        DOWNBOOK_SHADOW.append(style, menu);
-
+        `)
     menu.querySelectorAll(".col").forEach(btn => {
             btn.onclick = () => {
                 const action = btn.dataset.action;
@@ -118,22 +100,14 @@ function LoadMenu(){
                 }
             };
         });
-    }
-    // toggle
-    menu.style.display =
-      menu.style.display === "none" ? "grid" : "none";
+
+togglePopup("downbook");
 }
 function onSettingClick() {
 
 
 const shadow = DOWNBOOK_SHADOW; // dùng biến global
-    let panel = shadow.getElementById("setting-panel");
-    if (!shadow) return;
-    if (!panel) {
-        panel = document.createElement("div");
-        panel.id = "setting-panel";
-
-        panel.innerHTML = `
+    let panel=createPopup("setting-panel",`
             <div class="row">
                 <label>⏱ Thời gian tải (ms)</label>
                 <input id="delayMin" type="number" placeholder="Min">
@@ -156,10 +130,7 @@ const shadow = DOWNBOOK_SHADOW; // dùng biến global
             </div>
 
             <button id="saveSetting">💾 Lưu</button>
-        `;
-
-        const style = document.createElement("style");
-        style.textContent = `
+        `, `
             #setting-panel {
                 position: fixed;
                 bottom: 280px;
@@ -205,10 +176,7 @@ const shadow = DOWNBOOK_SHADOW; // dùng biến global
             button:hover {
                 background: #444;
             }
-        `;
-
-        shadow.append(style, panel);
-
+        `);
         /* ===== SET GIÁ TRỊ MẶC ĐỊNH ===== */
        panel.querySelector("#delayMin").value = DOWNBOOK_CONFIG.delayMin;
         panel.querySelector("#delayMax").value = DOWNBOOK_CONFIG.delayMax;
@@ -226,12 +194,50 @@ const shadow = DOWNBOOK_SHADOW; // dùng biến global
             console.log("✅ Setting saved", DOWNBOOK_CONFIG);
             panel.style.display = "none";
         };
-    }
-let menu = DOWNBOOK_SHADOW.getElementById("downbook");
-    if(menu.style.display==="grid"){
-    panel.style.display =
-        panel.style.display === "none" ? "grid" : "none";}
-    else{
-        panel.style.display = "none"
-    }
+togglePopup("setting-panel")
+
 }
+function createPopup(id, html, styleCSS) {
+    if (!DOWNBOOK_SHADOW) return null;
+
+    let popup = DOWNBOOK_SHADOW.getElementById(id);
+    if (!popup) {
+        popup = document.createElement("div");
+        popup.id = id;
+        popup.innerHTML = html;
+
+        const style = document.createElement("style");
+        style.textContent = styleCSS;
+
+        DOWNBOOK_SHADOW.append(style, popup);
+        POPUPS[id] = popup;
+    }
+    return popup;
+}
+
+// Hàm quản lý ẩn/hiện popup
+function togglePopup(id) {
+    const popup = POPUPS[id] || DOWNBOOK_SHADOW.getElementById(id);
+    if (!popup) return;
+
+    const isMenu = id === "downbook";
+
+    if (isMenu) {
+        // Toggle menu
+        if (popup.style.display === "grid") {
+            // Menu đang hiện, bấm ẩn → ẩn tất cả popup
+            Object.values(POPUPS).forEach(p => p.style.display = "none");
+        } else {
+            // Menu đang ẩn → bật menu
+            popup.style.display = "grid";
+        }
+        return;
+    }
+
+    // Nếu toggle popup khác (setting, download)
+    // Chỉ toggle popup hiện tại, không bật menu
+    popup.style.display = (popup.style.display === "grid" || popup.style.display === "block")
+        ? "none"
+        : "grid";
+}
+
