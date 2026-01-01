@@ -1,0 +1,237 @@
+// ==UserScript==
+// @name         Universal Downloader UI
+// @match        *://*/*
+// @run-at       document-end
+// ==/UserScript==
+
+(function () {
+    LoadUI()
+})();
+var DOWNBOOK_SHADOW;
+const DOWNBOOK_CONFIG = {
+    delayMin: 1000,
+    delayMax: 3000,
+    startChapter: 1,
+    endChapter: 1,
+    threads: 1
+};
+function LoadUI() {
+if (!document.body) return;
+
+    const host = document.createElement("div");
+    host.style.cssText = `
+        all: initial;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 2147483647;
+    `;
+    document.body.appendChild(host);
+
+    const shadow = host.attachShadow({ mode: "open" });
+DOWNBOOK_SHADOW=shadow;
+    const style = document.createElement("style");
+    style.textContent = `
+        button {
+            all: unset;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #111;
+            color: #fff;
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,.5);
+        }
+    `
+
+    const btn = document.createElement("button");
+    btn.textContent = "☰";
+    btn.title = "Menu";
+
+    shadow.append(style, btn);
+    LoadMenu()
+    btn.onclick = ()=>{LoadMenu();onSettingClick();};
+};
+
+function LoadMenu(){
+//Setting
+    let menu = DOWNBOOK_SHADOW.getElementById("downbook");
+
+    // nếu chưa có thì tạo
+    if (!menu) {
+        menu = document.createElement("div");
+        menu.id = "downbook";
+
+         menu.innerHTML = `
+            <div class="col" data-action="setting">⚙️<br>Setting</div>
+            <div class="col" data-action="view">👁️<br>View</div>
+            <div class="col" data-action="download">⬇️<br>Download</div>
+        `;
+
+        const style = document.createElement("style");
+        style.textContent = `
+            #downbook {
+                display: none;
+                width: 240px;
+                background: #111;
+                color: #fff;
+                border-radius: 8px;
+                padding: 10px;
+                margin-bottom: 10px;
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+
+            .col {
+                text-align: center;
+                padding: 8px 4px;
+                background: #222;
+                border-radius: 6px;
+                cursor: pointer;
+                user-select: none;
+            }
+
+            .col:hover {
+                background: #333;
+            }
+        `;
+
+        DOWNBOOK_SHADOW.append(style, menu);
+
+    menu.querySelectorAll(".col").forEach(btn => {
+            btn.onclick = () => {
+                const action = btn.dataset.action;
+
+                if (action === "setting") {
+                    onSettingClick();
+                }
+                else if (action === "view") {
+                    onViewClick();
+                }
+                else if (action === "download") {
+                    onDownloadClick();
+                }
+            };
+        });
+    }
+    // toggle
+    menu.style.display =
+      menu.style.display === "none" ? "grid" : "none";
+}
+function onSettingClick() {
+
+
+const shadow = DOWNBOOK_SHADOW; // dùng biến global
+    let panel = shadow.getElementById("setting-panel");
+    if (!shadow) return;
+    if (!panel) {
+        panel = document.createElement("div");
+        panel.id = "setting-panel";
+
+        panel.innerHTML = `
+            <div class="row">
+                <label>⏱ Thời gian tải (ms)</label>
+                <input id="delayMin" type="number" placeholder="Min">
+                <input id="delayMax" type="number" placeholder="Max">
+            </div>
+
+            <div class="row">
+                <label>📖 Chương bắt đầu</label>
+                <input id="startChapter" type="number">
+            </div>
+
+            <div class="row">
+                <label>📘 Chương kết thúc</label>
+                <input id="endChapter" type="number">
+            </div>
+
+            <div class="row">
+                <label>⚙️ Số luồng tải</label>
+                <input id="threads" type="number" min="1" max="10">
+            </div>
+
+            <button id="saveSetting">💾 Lưu</button>
+        `;
+
+        const style = document.createElement("style");
+        style.textContent = `
+            #setting-panel {
+                position: fixed;
+                bottom: 280px;
+                right: 20px;
+                width: 260px;
+                background: #111;
+                color: #fff;
+                border-radius: 8px;
+                padding: 10px;
+                font-size: 13px;
+                display: grid;
+                gap: 8px;
+            }
+
+            .row {
+                display: grid;
+                gap: 4px;
+            }
+
+            label {
+                font-size: 12px;
+                opacity: .8;
+            }
+
+            input {
+                all: unset;
+                background: #222;
+                padding: 6px;
+                border-radius: 4px;
+                color: #fff;
+            }
+
+            button {
+                all: unset;
+                margin-top: 6px;
+                padding: 8px;
+                text-align: center;
+                background: #333;
+                border-radius: 6px;
+                cursor: pointer;
+            }
+
+            button:hover {
+                background: #444;
+            }
+        `;
+
+        shadow.append(style, panel);
+
+        /* ===== SET GIÁ TRỊ MẶC ĐỊNH ===== */
+       panel.querySelector("#delayMin").value = DOWNBOOK_CONFIG.delayMin;
+        panel.querySelector("#delayMax").value = DOWNBOOK_CONFIG.delayMax;
+        panel.querySelector("#startChapter").value = DOWNBOOK_CONFIG.startChapter;
+        panel.querySelector("#endChapter").value = DOWNBOOK_CONFIG.endChapter;
+        panel.querySelector("#threads").value = DOWNBOOK_CONFIG.threads;
+
+        panel.querySelector("#saveSetting").onclick = () => {
+            DOWNBOOK_CONFIG.delayMin = +panel.querySelector("#delayMin").value || 0;
+            DOWNBOOK_CONFIG.delayMax = +panel.querySelector("#delayMax").value || 0;
+            DOWNBOOK_CONFIG.startChapter = +panel.querySelector("#startChapter").value || 1;
+            DOWNBOOK_CONFIG.endChapter = +panel.querySelector("#endChapter").value || 1;
+            DOWNBOOK_CONFIG.threads = +panel.querySelector("#threads").value || 1;
+
+            console.log("✅ Setting saved", DOWNBOOK_CONFIG);
+            panel.style.display = "none";
+        };
+    }
+let menu = DOWNBOOK_SHADOW.getElementById("downbook");
+    if(menu.style.display==="grid"){
+    panel.style.display =
+        panel.style.display === "none" ? "grid" : "none";}
+    else{
+        panel.style.display = "none"
+    }
+}
